@@ -18,6 +18,10 @@ func (p *Profile) AddComponent(index int, c Component) {
 	}
 }
 
+func (p *Profile) AppendComponent(c Component) {
+	p.components = append(p.components, c)
+}
+
 func (p *Profile) Render() {
 	var res []*string
 	for _, c := range p.components {
