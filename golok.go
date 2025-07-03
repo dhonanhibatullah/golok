@@ -7,9 +7,11 @@ import (
 )
 
 type profileHandle struct {
+	index  int
 	ch     <-chan *[]*string
 	ctx    context.Context
 	cancel context.CancelFunc
+	cache  *[]*string
 }
 
 type Golok struct {
@@ -33,32 +35,34 @@ func (g *Golok) NewProfile(index int) *Profile {
 	}
 
 	ch := make(chan *[]*string)
-	idx := index
 	ctx, cancel := context.WithCancel(context.Background())
 
-	if idx >= len(g.profileList) {
-		idx = len(g.profileList)
-		g.profileList = append(
-			g.profileList,
-			&profileHandle{
-				ch:     ch,
-				ctx:    ctx,
-				cancel: cancel,
-			},
-		)
+	if index >= len(g.profileList) {
+		ph := &profileHandle{
+			index:  len(g.profileList),
+			ch:     ch,
+			ctx:    ctx,
+			cancel: cancel,
+			cache:  nil,
+		}
+		g.profileList = append(g.profileList, ph)
+		go g.profileWorker(ph)
 	} else {
-		g.profileList = insert(
-			g.profileList,
-			idx,
-			&profileHandle{
-				ch:     ch,
-				ctx:    ctx,
-				cancel: cancel,
-			},
-		)
-	}
+		ph := &profileHandle{
+			index:  index,
+			ch:     ch,
+			ctx:    ctx,
+			cancel: cancel,
+			cache:  nil,
+		}
+		g.profileList = insert(g.profileList, index, ph)
 
-	go g.profileWorker(idx)
+		g.updateIndices()
+		g.clearLines(len(g.profileList) - 1)
+		g.printCaches()
+
+		go g.profileWorker(ph)
+	}
 
 	return &Profile{
 		ch:         ch,
@@ -71,10 +75,16 @@ func (g *Golok) Close() {
 	for _, v := range g.profileList {
 		v.cancel()
 	}
-	g.moveCursorAndClear(len(g.profileList))
+	g.move(len(g.profileList))
 }
 
-func (g *Golok) moveCursorAndClear(index int) {
+func (g *Golok) updateIndices() {
+	for i, v := range g.profileList {
+		v.index = i
+	}
+}
+
+func (g *Golok) move(index int) {
 	diff := g.cursor - index
 	dist := absInt(diff)
 	g.cursor = index
@@ -89,26 +99,65 @@ func (g *Golok) moveCursorAndClear(index int) {
 		}
 	}
 
-	fmt.Print("\r\033[2K")
+	fmt.Print("\r")
 }
 
-func (g *Golok) profileWorker(index int) {
+func (g *Golok) clear() {
+	fmt.Print("\033[2K")
+}
+
+func (g *Golok) clearLines(n int) {
+	for i := n; i >= 0; i-- {
+		g.move(i)
+		g.clear()
+	}
+}
+
+func (g *Golok) print(s *[]*string) {
+	if s != nil {
+		for _, log := range *s {
+			if log != nil {
+				fmt.Print(*log)
+			}
+		}
+	}
+}
+
+func (g *Golok) printCaches() {
+	for i, v := range g.profileList {
+		g.move(i)
+		g.clear()
+		g.print(v.cache)
+	}
+}
+
+func (g *Golok) profileWorker(ph *profileHandle) {
 	for {
 		select {
-		case <-g.profileList[index].ctx.Done():
-			remove(g.profileList, index)
+		case <-ph.ctx.Done():
+			g.mtx.Lock()
+
+			g.profileList = remove(g.profileList, ph.index)
+			g.updateIndices()
+			g.clearLines(len(g.profileList) + 1)
+			g.printCaches()
+
+			g.mtx.Unlock()
 			return
 
-		case lok := <-g.profileList[index].ch:
-			g.mtx.Lock()
-			g.moveCursorAndClear(index)
+		case lok := <-ph.ch:
 			if lok != nil {
-				for _, s := range *lok {
-					if s != nil {
-						fmt.Print(*s)
-					}
-				}
+				ph.cache = lok
+			} else {
+				continue
 			}
+
+			g.mtx.Lock()
+
+			g.move(ph.index)
+			g.clear()
+			g.print(lok)
+
 			g.mtx.Unlock()
 		}
 	}
