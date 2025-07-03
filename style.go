@@ -17,21 +17,7 @@ type Styling struct {
 	Format        string
 }
 
-func NewStyle() *Styling {
-	return &Styling{
-		Bold:          false,
-		Italic:        false,
-		Underline:     false,
-		Strikethrough: false,
-		EnableFg:      false,
-		EnableBg:      false,
-		Fg:            0xFFFFFF,
-		Bg:            0x000000,
-		Format:        "%s",
-	}
-}
-
-func (s *Styling) Apply(text string) string {
+func (s *Styling) Apply(text string) *string {
 	var (
 		unstyled  bool
 		ansiSeq   strings.Builder
@@ -62,10 +48,15 @@ func (s *Styling) Apply(text string) string {
 		}
 	}
 
-	formatted = fmt.Sprintf(s.Format, text)
-	if !unstyled {
-		return fmt.Sprintf("%s%s\033[0m", ansiSeq.String()[:ansiSeq.Len()-1]+"m", formatted)
+	if s.Format != "" {
+		formatted = fmt.Sprintf(s.Format, text)
 	} else {
-		return formatted
+		formatted = text
 	}
+
+	if !unstyled {
+		formatted = fmt.Sprintf("%s%s\033[0m", ansiSeq.String()[:ansiSeq.Len()-1]+"m", formatted)
+	}
+
+	return &formatted
 }
