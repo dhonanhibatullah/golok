@@ -1,39 +1,62 @@
-# **golok**
+# ⚔️ **golok**
 
-Want to have a logging like this?
+Ever wanted your logs to _look cool_ and _feel alive_ like this?
 
-Don't worry, golok has you covered!
+![intro.gif](assets/intro.gif)
 
-## **A. Installation**
+Say no more—**golok** slices through boring logs like a blade through butter.
+
+---
+
+## 🧩 **A. Installation**
 
 ```bash
 go get github.com/dhonanhibatullah/golok
 ```
 
-## **B. Introduction**
+---
 
-Golok consists of 4 essential parts:
+## 🚀 **B. What is golok?**
+
+**golok** is a lightweight, customizable logging library for Go that lets you build _dynamic_, _styled_, and _interactive_ terminal logs.
+
+It’s made of 4 essential parts:
+
+---
 
 ### **1. Golok Instance**
 
-The Golok instance is the main part to initiate the Golok's logging mechanism. Golok instance is used to handle multiple profiles. We initiate it with:
+The core engine to drive your logging. It manages multiple profiles:
 
 ```go
 glk := golok.NewGolok()
 defer glk.Close()
 ```
 
+---
+
 ### **2. Profile**
 
-A profile is **a line of log** which built by components. So in order to create a profile, we have to combine multiple components. Profile can be created from the Golok instance and provide the index to describe in which line of log we want to place the profile with:
+Think of a **profile** as a single log line—composed of multiple styled components.
+
+Create a profile with a specified line index like so:
 
 ```go
 glkProfile := glk.NewProfile(index)
 ```
 
+---
+
 ### **3. Component**
 
-Currently, there are 4 types of component: `Text`, `ProgressBar`, `Timestamp`, and `Datetime`. A component requires a **bind**, which is a pointer to a variable we want the component value is (not required for `Timestamp` and `Datetime`). Here is the example of initiating each component and put it into the profile.
+A profile is made up of components. Golok supports:
+
+- `Text`
+- `ProgressBar`
+- `Timestamp`
+- `Datetime`
+
+Each component (except `Timestamp` and `Datetime`) needs a **bind** (pointer to a value).
 
 ```go
 textVal := "Hello Dhonan!"
@@ -50,13 +73,13 @@ glkProfile.AddComponent(2, myTimestamp)
 glkProfile.AddComponent(3, myDatetime)
 ```
 
-We will talk about creating a style right after this.
+---
 
 ### **4. Styling**
 
-A style consists of 9 properties, each has the effect based on its name.
+Each component can be styled! Here’s the available styling options:
 
-```
+```go
 type Styling struct {
 	Bold          bool
 	Italic        bool
@@ -70,7 +93,7 @@ type Styling struct {
 }
 ```
 
-This is the example of a style:
+A style example:
 
 ```go
 style1 := &Styling{
@@ -83,11 +106,13 @@ style1 := &Styling{
 }
 ```
 
-Note: `Format` is how place the resulted string. You can put anything in the `Format` as long as there is one and only one format directive, which is the `%s`. If you do not want any format, leave it unassigned.
+> 💡 `Format` controls how the value is printed (must include exactly one `%s`). Leave it empty for raw output.
+
+---
 
 ### **5. Complete Example**
 
-Here is a fun complete example you could directly try.
+Here’s a quick full example you can try right now:
 
 ```go
 package main
@@ -130,22 +155,22 @@ func myRoutine(cancel context.CancelFunc, p *golok.Profile) {
 	textVal = "Downloading..."
 	progressVal = 25
 	p.Render()
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Second)
 
 	textVal = "Installing..."
 	progressVal = 50
 	p.Render()
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Second)
 
 	textVal = "Starting..."
 	progressVal = 75
 	p.Render()
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Second)
 
 	textVal = "Finishing..."
 	progressVal = 100
 	p.Render()
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Second)
 }
 
 func main() {
@@ -158,4 +183,8 @@ func main() {
 }
 ```
 
-You should get something like this:
+The result?
+
+![example.gif](assets/example.gif)
+
+---
